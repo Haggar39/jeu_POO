@@ -1,15 +1,14 @@
 # frozen_string_literal: true
 
-# La classe Player modélise un combattant.
+# La classe Player modélise un combattant (Bot).
 class Player
   # Attributs accessibles en lecture et écriture: nom et points de vie
-
   attr_accessor :name, :life_points
 
-  # Initialisation d'un nouveau joueur
+  # Initialisation d'un nouveau joueur (Bot)
   def initialize(name)
     @name = name
-    # Tous les joueurs commencent avec 10 points de vie (valeur fixe)
+    # Les bots commencent avec 10 points de vie
     @life_points = 10
   end
 
@@ -27,18 +26,19 @@ class Player
       @life_points = 0 # S'assure que les points de vie ne sont pas négatifs pour l'affichage
       puts "le joueur #{@name} a été tué !"
     end
-    # Retourne nil pour correspondre au comportement de l'exemple PRY
     nil
   end
 
   # Calcule les dommages infligés (lancer de dé aléatoire entre 1 et 6)
+  # Pour un Player simple (Bot), les dégâts sont entre 1 et 6.
   def compute_damage
-    # Utilise rand(1..6) pour simuler le lancé de dé
     rand(1..6)
   end
 
-  # Attaque un autre joueur (objet Player)
+  # Attaque un autre joueur (objet Player ou HumanPlayer)
   def attacks(player_to_attack)
+    return if @life_points <= 0 # Un joueur mort ne peut pas attaquer
+
     # 1. Annonce l'attaque
     puts "\n#{@name} attaque #{player_to_attack.name}"
 
@@ -50,60 +50,74 @@ class Player
 
     # 4. Annonce les dommages infligés
     puts "il lui inflige #{damage} points de dommages"
-
-    # Retourne nil pour correspondre au comportement de l'exemple PRY
     nil
   end
 end
 
-# frozen_string_literal: true
+# La classe HumanPlayer modélise un combattant joué par l'utilisateur.
+# Elle hérite de Player.
+class HumanPlayer < Player
+  # Attribut supplémentaire : niveau de l'arme (corrigé: la syntaxe est :weapon_level)
+  attr_accessor :weapon_level
 
-# On a besoin de la classe Player définie dans player.rb
-require_relative 'player'
-# Pour le débogage interactif (si on veut tester ligne par ligne)
-require 'pry'
-
-def perform
-  puts '---------------------------------------------------'
-  puts 'Bienvenue sur FIGHT FOR THP !'
-  puts '---------------------------------------------------'
-
-  # 1. Création des joueurs (avec leurs noms)
-  player1 = Player.new('Josiane')
-  player2 = Player.new('José')
-
-  # Boucle du combat : continue tant que les deux joueurs sont en vie
-  while player1.life_points > 0 && player2.life_points > 0
-    puts "\n==================================================="
-    # 2. Présentation de l'état des combattants (au début de chaque tour)
-    puts "Voici l'état de nos joueurs :"
-    player1.show_state
-    player2.show_state
-    puts "==================================================="
-
-    # Annonce la phase d'attaque
-    puts "\nPassons à la phase d'attaque :"
-
-    # 3. Josiane attaque José
-    player1.attacks(player2)
-
-    # 4. Correction du bug : vérifie si le joueur 2 est mort après l'attaque
-    # Si la cible est tuée, on sort immédiatement de la boucle pour l'empêcher de riposter.
-    if player2.life_points <= 0
-      break
-    end
-
-    # 5. José réplique (s'il est encore en vie)
-    player2.attacks(player1)
+  # Surcharge de la méthode initialize (corrigé: le nom est initialize)
+  def initialize(name)
+    @name = name
+    # Points de vie différents pour l'Humain : 100
+    @life_points = 100
+    # Niveau de l'arme initial
+    @weapon_level = 1
   end
 
-  # Fin du combat
-  puts "\n---------------------------------------------------"
-  puts "Le combat est terminé !"
-  puts "---------------------------------------------------"
-  
-  # binding.pry est le mot-clé correct pour lancer le débogueur
-  binding.pry 
-end
+  # Surcharge de la méthode show_state pour inclure le niveau de l'arme
+  def show_state
+    puts "#{@name} a #{@life_points} points de vie et une arme de niveau #{@weapon_level}"
+  end
 
-perform
+  # Surcharge de compute_damage pour utiliser le niveau de l'arme comme multiplicateur
+  def compute_damage
+    # Corrigé: On utilise rand(1..6) et on multiplie par @weapon_level
+    rand(1..6) * @weapon_level
+  end
+
+  # Permet au joueur de chercher une nouvelle arme
+  def search_weapon
+    # Corrigé: On utilise rand(1..6) directement, pas HumanPlayer.compute_damage
+    new_weapon_level = rand(1..6)
+    puts "Tu as trouvé une arme de niveau #{new_weapon_level}"
+
+    # Comparaison avec l'arme actuelle
+    if new_weapon_level > @weapon_level
+      @weapon_level = new_weapon_level
+      puts 'Youhou ! elle est meilleure que ton arme actuelle : tu la prends.'
+    else
+      puts 'M@*#$... elle n\'est pas mieux que ton arme actuelle...'
+    end
+    nil
+  end
+
+  # Permet au joueur de chercher un pack de soins
+  def search_health_pack
+    # Lancer de dé pour déterminer le pack trouvé
+    dice_roll = rand(1..6)
+
+    case dice_roll
+    when 1
+      # Rien trouvé
+      puts 'Tu n\'as rien trouvé... '
+    when 2..5
+      # Pack de +50 points de vie
+      @life_points += 50
+      # Assure que la vie ne dépasse pas 100
+      @life_points = [@life_points, 100].min
+      puts 'Bravo, tu as trouvé un pack de +50 points de vie !'
+    when 6
+      # Pack de +80 points de vie
+      @life_points += 80
+      # Assure que la vie ne dépasse pas 100
+      @life_points = [@life_points, 100].min
+      puts 'Waow, tu as trouvé un pack de +80 points de vie !'
+    end
+    nil
+  end
+end
